@@ -1,0 +1,5 @@
+{
+  "name": "Veritas - Editorial Fact Checker",
+  "description": "A professional-grade editorial tool for verifying citations, quotes, and attributions in manuscripts using the Gemini API.",
+  "requestFramePermissions": []
+}
