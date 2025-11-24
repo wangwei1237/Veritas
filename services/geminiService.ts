@@ -1,10 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { VerificationItem } from "../types";
 
-const getGeminiClient = () => {
-  const apiKey = process.env.API_KEY;
+const getGeminiClient = (apiKey: string) => {
   if (!apiKey) {
-    console.error("API_KEY is missing in environment variables.");
+    console.error("API_KEY is missing.");
     throw new Error("API Configuration Error: Missing API Key.");
   }
   return new GoogleGenAI({ apiKey });
@@ -22,8 +21,8 @@ const cleanJson = (text: string): string => {
   return clean;
 };
 
-export const verifyManuscript = async (text: string): Promise<VerificationItem[]> => {
-  const ai = getGeminiClient();
+export const verifyManuscript = async (text: string, apiKey: string): Promise<VerificationItem[]> => {
+  const ai = getGeminiClient(apiKey);
 
   const prompt = `
     作为一位拥有20年经验的资深图书编辑和事实核查专家，请审查以下文本片段。

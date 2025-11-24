@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { verifyManuscript } from './services/geminiService';
 import ResultsTable from './components/ResultsTable';
 import StatsChart from './components/StatsChart';
@@ -33,6 +33,23 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
+  
+  // State for API Key
+  const [apiKey, setApiKey] = useState<string>("");
+
+  // Load API Key from local storage on mount
+  useEffect(() => {
+    const storedKey = localStorage.getItem('gemini_api_key');
+    if (storedKey) {
+      setApiKey(storedKey);
+    }
+  }, []);
+
+  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newKey = e.target.value;
+    setApiKey(newKey);
+    localStorage.setItem('gemini_api_key', newKey);
+  };
 
   // Calculate stats derived from results
   const stats: AnalysisStats = useMemo(() => {
@@ -136,6 +153,10 @@ const App: React.FC = () => {
   };
 
   const handleAnalyze = async () => {
+    if (!apiKey) {
+      setError("Please configure your Gemini API Key first.");
+      return;
+    }
     if (!inputText.trim()) {
       setError("Please input or upload text to verify.");
       return;
@@ -164,13 +185,13 @@ const App: React.FC = () => {
            }
         }
 
-        const chunkResults = await verifyManuscript(chunkContent);
+        const chunkResults = await verifyManuscript(chunkContent, apiKey);
         setResults(prev => [...prev, ...chunkResults]);
         setProgress({ current: i + 1, total: chunks.length });
       }
     } catch (err) {
       console.error("Batch processing error", err);
-      setError("Verification process encountered an error. Partial results may be available.");
+      setError("Verification process encountered an error. Please check your API Key and try again.");
     } finally {
       setIsProcessing(false);
       setProgress(null);
@@ -242,6 +263,42 @@ const App: React.FC = () => {
           
           {/* Left Column: Input */}
           <div className="lg:col-span-4 space-y-6">
+            
+            {/* API Key Configuration */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Configuration
+              </h2>
+              <div className="space-y-2">
+                <label htmlFor="api-key" className="block text-sm font-medium text-gray-700">
+                  Gemini API Key
+                </label>
+                <div className="relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <input
+                    type="password"
+                    name="api-key"
+                    id="api-key"
+                    className="focus:ring-accent focus:border-accent block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 border"
+                    placeholder="Enter your API Key"
+                    value={apiKey}
+                    onChange={handleApiKeyChange}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Your API key is stored locally in your browser.
+                </p>
+              </div>
+            </div>
+
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -307,9 +364,9 @@ const App: React.FC = () => {
 
                 <button
                   onClick={handleAnalyze}
-                  disabled={isProcessing || isParsing || !inputText}
+                  disabled={isProcessing || isParsing || !inputText || !apiKey}
                   className={`w-full py-3 px-4 rounded-lg text-white font-medium shadow-md transition-all flex items-center justify-center gap-2
-                    ${isProcessing || isParsing || !inputText 
+                    ${isProcessing || isParsing || !inputText || !apiKey
                       ? 'bg-gray-400 cursor-not-allowed' 
                       : 'bg-gray-900 hover:bg-accent'
                     }`}
@@ -394,7 +451,7 @@ const App: React.FC = () => {
                         </svg>
                       </div>
                       <p className="text-gray-500 text-sm">
-                        Upload a manuscript (PDF, Word, Text) to generate a fact-checking report.
+                        Configure your API Key and upload a manuscript to generate a fact-checking report.
                       </p>
                   </div>
                 ) : (
