@@ -4,12 +4,23 @@ import ResultsTable from './components/ResultsTable';
 import StatsChart from './components/StatsChart';
 import { VerificationItem, AnalysisStats, CheckStatus } from './types';
 // @ts-ignore
-import * as pdfjsLib from 'pdfjs-dist';
+import * as pdfjsLibProxy from 'pdfjs-dist';
 // @ts-ignore
-import mammoth from 'mammoth';
+import * as mammothProxy from 'mammoth';
+
+// Handle ESM default import interop
+// The library might be on the 'default' property of the imported namespace
+const pdfjsLib = (pdfjsLibProxy as any).default || pdfjsLibProxy;
+const mammoth = (mammothProxy as any).default || mammothProxy;
 
 // Initialize PDF worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://esm.sh/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+// We check if GlobalWorkerOptions exists to avoid "Cannot set properties of undefined"
+if (pdfjsLib && !pdfjsLib.GlobalWorkerOptions) {
+  pdfjsLib.GlobalWorkerOptions = {};
+}
+if (pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://esm.sh/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+}
 
 // Approx 30k chars per chunk to fit comfortably within output token limits for citations
 const CHUNK_SIZE = 30000;
